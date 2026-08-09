@@ -7,12 +7,12 @@ resource "aws_vpc" "this" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags = merge(local.tags, { Name = local.name })
+  tags = { Name = local.name }
 }
 
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
-  tags   = merge(local.tags, { Name = local.name })
+  tags   = { Name = local.name }
 }
 
 # Public subnets (ALB + NAT). One per AZ.
@@ -23,7 +23,7 @@ resource "aws_subnet" "public" {
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = true
 
-  tags = merge(local.tags, { Name = "${local.name}-public-${var.azs[count.index]}" })
+  tags = { Name = "${local.name}-public-${var.azs[count.index]}" }
 }
 
 # Private subnets (ECS tasks, RDS, ElastiCache). One per AZ, separate from
@@ -34,12 +34,12 @@ resource "aws_subnet" "private" {
   cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
   availability_zone = var.azs[count.index]
 
-  tags = merge(local.tags, { Name = "${local.name}-private-${var.azs[count.index]}" })
+  tags = { Name = "${local.name}-private-${var.azs[count.index]}" }
 }
 
 resource "aws_eip" "nat" {
   domain = "vpc"
-  tags   = merge(local.tags, { Name = "${local.name}-nat" })
+  tags   = { Name = "${local.name}-nat" }
 
   depends_on = [aws_internet_gateway.this]
 }
@@ -50,7 +50,7 @@ resource "aws_nat_gateway" "this" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
 
-  tags = merge(local.tags, { Name = local.name })
+  tags = { Name = local.name }
 
   depends_on = [aws_internet_gateway.this]
 }
@@ -63,7 +63,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.this.id
   }
 
-  tags = merge(local.tags, { Name = "${local.name}-public" })
+  tags = { Name = "${local.name}-public" }
 }
 
 resource "aws_route_table_association" "public" {
@@ -80,7 +80,7 @@ resource "aws_route_table" "private" {
     nat_gateway_id = aws_nat_gateway.this.id
   }
 
-  tags = merge(local.tags, { Name = "${local.name}-private" })
+  tags = { Name = "${local.name}-private" }
 }
 
 resource "aws_route_table_association" "private" {
@@ -119,8 +119,6 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = local.tags
 }
 
 resource "aws_security_group" "tasks" {
@@ -143,8 +141,6 @@ resource "aws_security_group" "tasks" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = local.tags
 }
 
 resource "aws_security_group" "rds" {
@@ -159,8 +155,6 @@ resource "aws_security_group" "rds" {
     protocol        = "tcp"
     security_groups = [aws_security_group.tasks.id]
   }
-
-  tags = local.tags
 }
 
 resource "aws_security_group" "redis" {
@@ -175,6 +169,4 @@ resource "aws_security_group" "redis" {
     protocol        = "tcp"
     security_groups = [aws_security_group.tasks.id]
   }
-
-  tags = local.tags
 }

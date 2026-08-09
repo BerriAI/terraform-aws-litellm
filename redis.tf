@@ -1,8 +1,6 @@
 resource "aws_elasticache_subnet_group" "this" {
   name       = "${local.name}-redis"
   subnet_ids = aws_subnet.private[*].id
-
-  tags = local.tags
 }
 
 # Replication group (not aws_elasticache_cluster, which is the
@@ -32,6 +30,4 @@ resource "aws_elasticache_replication_group" "this" {
   transit_encryption_enabled = true
 
   apply_immediately = true
-
-  tags = local.tags
 }

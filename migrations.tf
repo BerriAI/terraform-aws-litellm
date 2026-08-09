@@ -42,6 +42,4 @@ resource "aws_ecs_task_definition" "migrations" {
       }
     }
   }])
-
-  tags = local.tags
 }

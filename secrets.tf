@@ -22,8 +22,6 @@ resource "aws_secretsmanager_secret" "master_key" {
   name                    = "${local.name}-master-key"
   description             = "LITELLM_MASTER_KEY for gateway + backend."
   recovery_window_in_days = 0
-
-  tags = local.tags
 }
 
 resource "aws_secretsmanager_secret_version" "master_key" {
@@ -42,8 +40,6 @@ resource "aws_secretsmanager_secret" "license" {
   name                    = "${local.name}-license"
   description             = "LITELLM_LICENSE for gateway + backend."
   recovery_window_in_days = 0
-
-  tags = local.tags
 }
 
 resource "aws_secretsmanager_secret_version" "license" {
@@ -63,8 +59,6 @@ resource "aws_secretsmanager_secret" "ui_password" {
   name                    = "${local.name}-ui-password"
   description             = "UI_PASSWORD for the backend (UI admin login)."
   recovery_window_in_days = 0
-
-  tags = local.tags
 }
 
 resource "aws_secretsmanager_secret_version" "ui_password" {
@@ -74,67 +68,10 @@ resource "aws_secretsmanager_secret_version" "ui_password" {
   secret_string = var.ui_password
 }
 
-# Billing-metrics mTLS material — only created when metering is enabled
-# (billing_metrics_endpoint non-empty) and the operator supplied the PEM.
-# The task-execution role gets GetSecretValue via iam.tf, and gateway +
-# backend pick the env vars up through shared_secrets in ecs.tf.
-resource "aws_secretsmanager_secret" "billing_metrics_client_cert" {
-  count = local.billing_metrics_client_cert_enabled ? 1 : 0
-
-  name                    = "${local.name}-billing-metrics-client-cert"
-  description             = "LITELLM_BILLING_METRICS_CLIENT_CERT for gateway + backend."
-  recovery_window_in_days = 0
-
-  tags = local.tags
-}
-
-resource "aws_secretsmanager_secret_version" "billing_metrics_client_cert" {
-  count = local.billing_metrics_client_cert_enabled ? 1 : 0
-
-  secret_id     = aws_secretsmanager_secret.billing_metrics_client_cert[0].id
-  secret_string = var.billing_metrics_client_cert_pem
-}
-
-resource "aws_secretsmanager_secret" "billing_metrics_client_key" {
-  count = local.billing_metrics_client_key_enabled ? 1 : 0
-
-  name                    = "${local.name}-billing-metrics-client-key"
-  description             = "LITELLM_BILLING_METRICS_CLIENT_KEY for gateway + backend."
-  recovery_window_in_days = 0
-
-  tags = local.tags
-}
-
-resource "aws_secretsmanager_secret_version" "billing_metrics_client_key" {
-  count = local.billing_metrics_client_key_enabled ? 1 : 0
-
-  secret_id     = aws_secretsmanager_secret.billing_metrics_client_key[0].id
-  secret_string = var.billing_metrics_client_key_pem
-}
-
-resource "aws_secretsmanager_secret" "billing_metrics_ca_cert" {
-  count = local.billing_metrics_ca_cert_enabled ? 1 : 0
-
-  name                    = "${local.name}-billing-metrics-ca-cert"
-  description             = "LITELLM_BILLING_METRICS_CA_CERT for gateway + backend."
-  recovery_window_in_days = 0
-
-  tags = local.tags
-}
-
-resource "aws_secretsmanager_secret_version" "billing_metrics_ca_cert" {
-  count = local.billing_metrics_ca_cert_enabled ? 1 : 0
-
-  secret_id     = aws_secretsmanager_secret.billing_metrics_ca_cert[0].id
-  secret_string = var.billing_metrics_ca_cert_pem
-}
-
 resource "aws_secretsmanager_secret" "db_master_password" {
   name                    = "${local.name}-db-master-password"
   description             = "Aurora master-user password - bootstrap only. Runtime auth is IAM-token."
   recovery_window_in_days = 0
-
-  tags = local.tags
 }
 
 resource "aws_secretsmanager_secret_version" "db_master_password" {

@@ -13,8 +13,6 @@ data "aws_iam_policy_document" "task_assume" {
 resource "aws_iam_role" "task_execution" {
   name               = "${local.name}-task-execution"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
-
-  tags = local.tags
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution" {
@@ -53,11 +51,7 @@ data "aws_iam_policy_document" "secrets_access" {
       [aws_secretsmanager_secret.master_key.arn],
       aws_secretsmanager_secret.license[*].arn,
       aws_secretsmanager_secret.ui_password[*].arn,
-      aws_secretsmanager_secret.billing_metrics_client_cert[*].arn,
-      aws_secretsmanager_secret.billing_metrics_client_key[*].arn,
-      aws_secretsmanager_secret.billing_metrics_ca_cert[*].arn,
       local.extra_secret_arns,
-      var.otel_headers_secret_arn == "" ? [] : [var.otel_headers_secret_arn],
     )
   }
 }
@@ -65,8 +59,6 @@ data "aws_iam_policy_document" "secrets_access" {
 resource "aws_iam_policy" "secrets_access" {
   name   = "${local.name}-secrets-access"
   policy = data.aws_iam_policy_document.secrets_access.json
-
-  tags = local.tags
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_secrets" {
@@ -83,8 +75,6 @@ resource "aws_iam_role_policy_attachment" "task_execution_secrets" {
 resource "aws_iam_role" "task" {
   name               = "${local.name}-task"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
-
-  tags = local.tags
 }
 
 data "aws_caller_identity" "current" {}
@@ -101,8 +91,6 @@ data "aws_iam_policy_document" "rds_iam_connect" {
 resource "aws_iam_policy" "rds_iam_connect" {
   name   = "${local.name}-rds-iam-connect"
   policy = data.aws_iam_policy_document.rds_iam_connect.json
-
-  tags = local.tags
 }
 
 resource "aws_iam_role_policy_attachment" "task_rds_iam_connect" {
@@ -123,6 +111,4 @@ resource "aws_iam_role_policy_attachment" "task_rds_iam_connect" {
 resource "aws_iam_role" "ui_task" {
   name               = "${local.name}-ui-task"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
-
-  tags = local.tags
 }

@@ -6,8 +6,6 @@ resource "aws_lb" "this" {
   subnets            = aws_subnet.public[*].id
 
   idle_timeout = 120
-
-  tags = local.tags
 }
 
 locals {
@@ -37,8 +35,6 @@ resource "aws_lb_target_group" "gateway" {
   }
 
   deregistration_delay = 30
-
-  tags = local.tags
 }
 
 resource "aws_lb_target_group" "backend" {
@@ -58,8 +54,6 @@ resource "aws_lb_target_group" "backend" {
   }
 
   deregistration_delay = 30
-
-  tags = local.tags
 }
 
 resource "aws_lb_target_group" "ui" {
@@ -79,8 +73,6 @@ resource "aws_lb_target_group" "ui" {
   }
 
   deregistration_delay = 30
-
-  tags = local.tags
 }
 
 # HTTP listener. When TLS is enabled this only serves a permanent
@@ -114,8 +106,6 @@ resource "aws_lb_listener" "http" {
       error_message = "ALB has no HTTPS listener. Either set `acm_certificate_arn` to enable TLS, or set `allow_plaintext_alb = true` to opt into HTTP-only (trial / dev only)."
     }
   }
-
-  tags = local.tags
 }
 
 # HTTPS listener. Only created when an ACM cert ARN is supplied — terminates
@@ -132,8 +122,6 @@ resource "aws_lb_listener" "https" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend.arn
   }
-
-  tags = local.tags
 }
 
 # UI exact paths (/, /favicon.ico, /ui) — priority 10.
@@ -151,8 +139,6 @@ resource "aws_lb_listener_rule" "ui_exact" {
       values = local.ui_exact_paths
     }
   }
-
-  tags = local.tags
 }
 
 # UI prefix paths (/_next/*, /litellm-asset-prefix/*, /assets/*, /ui/*) — priority 20.
@@ -170,8 +156,6 @@ resource "aws_lb_listener_rule" "ui_prefix" {
       values = local.ui_path_prefixes
     }
   }
-
-  tags = local.tags
 }
 
 # Gateway prefix rules — one per chunk-of-5 because ALB caps a path-pattern
@@ -192,6 +176,4 @@ resource "aws_lb_listener_rule" "gateway" {
       values = each.value
     }
   }
-
-  tags = local.tags
 }
