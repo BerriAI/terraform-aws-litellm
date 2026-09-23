@@ -156,17 +156,6 @@ resource "aws_security_group" "tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
-  dynamic "ingress" {
-    for_each = local.metrics_enabled && length(var.gateway_metrics_scrape_cidrs) > 0 ? [1] : []
-    content {
-      description = "Prometheus scrapers to the gateway metrics sidecar"
-      from_port   = var.gateway_metrics_port
-      to_port     = var.gateway_metrics_port
-      protocol    = "tcp"
-      cidr_blocks = var.gateway_metrics_scrape_cidrs
-    }
-  }
-
   egress {
     description = "All egress (LLM providers, RDS, Redis)"
     from_port   = 0
