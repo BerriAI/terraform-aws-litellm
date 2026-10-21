@@ -142,19 +142,19 @@ variable "azs" {
 variable "gateway_image" {
   description = "Container image for the gateway (data plane, port 4000). Tag must match a tag actually published to GHCR — the split images use the `v`-prefixed semver convention."
   type        = string
-  default     = "ghcr.io/berriai/litellm-gateway:v1.105.3"
+  default     = "ghcr.io/berriai/litellm-gateway:v1.106.2"
 }
 
 variable "backend_image" {
   description = "Container image for the backend (management API, port 4001)."
   type        = string
-  default     = "ghcr.io/berriai/litellm-backend:v1.105.3"
+  default     = "ghcr.io/berriai/litellm-backend:v1.106.2"
 }
 
 variable "ui_image" {
   description = "Container image for the UI (nginx static export, port 3000)."
   type        = string
-  default     = "ghcr.io/berriai/litellm-ui:v1.105.3"
+  default     = "ghcr.io/berriai/litellm-ui:v1.106.2"
 }
 
 variable "migrations_image" {
@@ -166,7 +166,7 @@ variable "migrations_image" {
     the same release tag as gateway/backend/ui.
   EOT
   type        = string
-  default     = "ghcr.io/berriai/litellm-migrations:v1.105.3"
+  default     = "ghcr.io/berriai/litellm-migrations:v1.106.2"
 }
 
 # ---------- Service sizing ----------
