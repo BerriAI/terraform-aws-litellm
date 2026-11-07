@@ -79,19 +79,32 @@ locals {
     { name = "OTEL_HEADERS", valueFrom = var.otel_headers_secret_arn },
   ] : []
 
-  # Enterprise request metering, gated on billing_metrics_endpoint.
-  billing_metrics_enabled               = var.billing_metrics_endpoint != ""
-  billing_metrics_client_secret_enabled = local.billing_metrics_enabled && var.billing_metrics_client_secret != ""
+  # Enterprise request metering, gated on billing_metrics_endpoint. The
+  # endpoint rides in as a plain env var; the mTLS material is stored in
+  # Secrets Manager (secrets.tf) and injected as PEM-valued env vars, which
+  # the proxy accepts in place of file paths. Each PEM is wired only when the
+  # operator supplied it, so an empty ca_cert_pem falls back to the system
+  # trust store.
+  billing_metrics_enabled             = var.billing_metrics_endpoint != ""
+  billing_metrics_client_cert_enabled = local.billing_metrics_enabled && var.billing_metrics_client_cert_pem != ""
+  billing_metrics_client_key_enabled  = local.billing_metrics_enabled && var.billing_metrics_client_key_pem != ""
+  billing_metrics_ca_cert_enabled     = local.billing_metrics_enabled && var.billing_metrics_ca_cert_pem != ""
 
   billing_metrics_env = local.billing_metrics_enabled ? [
     { name = "LITELLM_BILLING_METRICS_ENDPOINT", value = var.billing_metrics_endpoint },
-    { name = "LITELLM_BILLING_METRICS_CLIENT_ID", value = var.billing_metrics_client_id },
-    { name = "LITELLM_BILLING_METRICS_TOKEN_URL", value = var.billing_metrics_token_url },
   ] : []
 
-  billing_metrics_secrets = local.billing_metrics_client_secret_enabled ? [
-    { name = "LITELLM_BILLING_METRICS_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.billing_metrics_client_secret[0].arn },
-  ] : []
+  billing_metrics_secrets = concat(
+    local.billing_metrics_client_cert_enabled ? [
+      { name = "LITELLM_BILLING_METRICS_CLIENT_CERT", valueFrom = aws_secretsmanager_secret.billing_metrics_client_cert[0].arn },
+    ] : [],
+    local.billing_metrics_client_key_enabled ? [
+      { name = "LITELLM_BILLING_METRICS_CLIENT_KEY", valueFrom = aws_secretsmanager_secret.billing_metrics_client_key[0].arn },
+    ] : [],
+    local.billing_metrics_ca_cert_enabled ? [
+      { name = "LITELLM_BILLING_METRICS_CA_CERT", valueFrom = aws_secretsmanager_secret.billing_metrics_ca_cert[0].arn },
+    ] : [],
+  )
 
   managed_db_env = var.create_database ? [
     { name = "IAM_TOKEN_DB_AUTH", value = "true" },
@@ -216,7 +229,7 @@ locals {
   gateway_metrics_container = local.metrics_enabled ? [
     {
       name       = "metrics"
-      image      = local.gateway_image
+      image      = var.gateway_image
       essential  = false
       entryPoint = ["python", "-m", "litellm.proxy.prometheus_metrics_server"]
       command    = ["--port", tostring(var.gateway_metrics_port)]
@@ -293,7 +306,7 @@ locals {
 
   collector_container = var.collector_enabled ? [{
     name      = "collector"
-    image     = local.gateway_image
+    image     = var.gateway_image
     essential = false
     cpu       = var.collector_cpu
     memory    = var.collector_memory
@@ -325,12 +338,27 @@ locals {
 
 # ---------- Gateway ----------
 resource "aws_ecs_task_definition" "gateway" {
+  # Metering needs a client certificate AND its key. Each secret is created only
+  # when its own PEM is supplied, so an endpoint set with a missing key would
+  # otherwise apply cleanly and leave the proxy logging "missing config" and
+  # never exporting. ca_cert_pem stays optional: empty means fall back to the
+  # system trust store.
+  #
+  # The guard lives here, on an unconditional resource, rather than on the cert
+  # secret: that secret is count-gated on the cert itself, so it has zero
+  # instances in exactly the case this must catch. Adding count or for_each to
+  # this resource would silently stop the guard from evaluating.
+  #
+  #   endpoint  cert  key  -> result
+  #   ""        any   any  -> metering off, no secrets created
+  #   set       set   set  -> metering on
+  #   set       any-missing -> plan fails here
   lifecycle {
     precondition {
       condition = var.billing_metrics_endpoint == "" || (
-        var.billing_metrics_client_id != "" && var.billing_metrics_client_secret != ""
+        var.billing_metrics_client_cert_pem != "" && var.billing_metrics_client_key_pem != ""
       )
-      error_message = "billing_metrics_client_id and billing_metrics_client_secret are required when billing_metrics_endpoint is set."
+      error_message = "billing_metrics_client_cert_pem and billing_metrics_client_key_pem are both required when billing_metrics_endpoint is set."
     }
 
     precondition {
@@ -361,7 +389,7 @@ resource "aws_ecs_task_definition" "gateway" {
     merge(
       {
         name      = "gateway"
-        image     = local.gateway_image
+        image     = var.gateway_image
         essential = true
 
         portMappings = [{ containerPort = 4000, protocol = "tcp" }]
@@ -437,7 +465,9 @@ resource "aws_ecs_service" "gateway" {
     aws_secretsmanager_secret_version.license,
     aws_secretsmanager_secret_version.database_url,
     aws_secretsmanager_secret_version.redis_url,
-    aws_secretsmanager_secret_version.billing_metrics_client_secret,
+    aws_secretsmanager_secret_version.billing_metrics_client_cert,
+    aws_secretsmanager_secret_version.billing_metrics_client_key,
+    aws_secretsmanager_secret_version.billing_metrics_ca_cert,
   ]
 
   tags = local.tags
@@ -451,9 +481,9 @@ resource "aws_ecs_task_definition" "backend" {
   lifecycle {
     precondition {
       condition = var.billing_metrics_endpoint == "" || (
-        var.billing_metrics_client_id != "" && var.billing_metrics_client_secret != ""
+        var.billing_metrics_client_cert_pem != "" && var.billing_metrics_client_key_pem != ""
       )
-      error_message = "billing_metrics_client_id and billing_metrics_client_secret are required when billing_metrics_endpoint is set."
+      error_message = "billing_metrics_client_cert_pem and billing_metrics_client_key_pem are both required when billing_metrics_endpoint is set."
     }
   }
 
@@ -469,7 +499,7 @@ resource "aws_ecs_task_definition" "backend" {
     merge(
       {
         name      = "backend"
-        image     = local.backend_image
+        image     = var.backend_image
         essential = true
 
         portMappings = [{ containerPort = 4001, protocol = "tcp" }]
@@ -536,7 +566,9 @@ resource "aws_ecs_service" "backend" {
     aws_secretsmanager_secret_version.ui_password,
     aws_secretsmanager_secret_version.database_url,
     aws_secretsmanager_secret_version.redis_url,
-    aws_secretsmanager_secret_version.billing_metrics_client_secret,
+    aws_secretsmanager_secret_version.billing_metrics_client_cert,
+    aws_secretsmanager_secret_version.billing_metrics_client_key,
+    aws_secretsmanager_secret_version.billing_metrics_ca_cert,
   ]
 
   tags = local.tags
@@ -559,7 +591,7 @@ resource "aws_ecs_task_definition" "ui" {
   container_definitions = jsonencode([
     {
       name         = "ui"
-      image        = local.ui_image
+      image        = var.ui_image
       essential    = true
       portMappings = [{ containerPort = 3000, protocol = "tcp" }]
 
