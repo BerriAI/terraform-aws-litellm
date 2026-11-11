@@ -229,7 +229,7 @@ locals {
   gateway_metrics_container = local.metrics_enabled ? [
     {
       name       = "metrics"
-      image      = local.gateway_image
+      image      = var.gateway_image
       essential  = false
       entryPoint = ["python", "-m", "litellm.proxy.prometheus_metrics_server"]
       command    = ["--port", tostring(var.gateway_metrics_port)]
@@ -306,7 +306,7 @@ locals {
 
   collector_container = var.collector_enabled ? [{
     name      = "collector"
-    image     = local.gateway_image
+    image     = var.gateway_image
     essential = false
     cpu       = var.collector_cpu
     memory    = var.collector_memory
@@ -389,7 +389,7 @@ resource "aws_ecs_task_definition" "gateway" {
     merge(
       {
         name      = "gateway"
-        image     = local.gateway_image
+        image     = var.gateway_image
         essential = true
 
         portMappings = [{ containerPort = 4000, protocol = "tcp" }]
@@ -499,7 +499,7 @@ resource "aws_ecs_task_definition" "backend" {
     merge(
       {
         name      = "backend"
-        image     = local.backend_image
+        image     = var.backend_image
         essential = true
 
         portMappings = [{ containerPort = 4001, protocol = "tcp" }]
@@ -591,7 +591,7 @@ resource "aws_ecs_task_definition" "ui" {
   container_definitions = jsonencode([
     {
       name         = "ui"
-      image        = local.ui_image
+      image        = var.ui_image
       essential    = true
       portMappings = [{ containerPort = 3000, protocol = "tcp" }]
 
