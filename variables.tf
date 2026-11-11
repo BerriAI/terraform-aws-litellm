@@ -144,7 +144,7 @@ variable "image_registry" {
 variable "image_tag" {
   description = "Tag applied to all four litellm-* images when composed from `image_registry`. A published module version ships with this stamped to its own release tag, which matches the `v`-prefixed tag published to GHCR for the same LiteLLM release. Set it to pin a different LiteLLM release. When sourcing the module from a git ref of the monorepo it has no default and must be set."
   type        = string
-  default     = "v1.110.0-rc.1"
+  default     = "v1.109.0"
   nullable    = false
 
   validation {
@@ -764,7 +764,13 @@ variable "otel_headers_secret_arn" {
 
 # ---------- Enterprise billing metrics ----------
 #
-# License-gated request metering. The client secret is stored in Secrets Manager.
+# License-gated request metering. Opt-in and gated entirely on
+# billing_metrics_endpoint: leave it empty (the default) and nothing
+# metering-related lands in the container env. Set it and gateway + backend
+# export billable-request counts over OTLP/HTTP, authenticating to the
+# collector with an mTLS client cert. The proxy accepts the cert, key, and CA
+# as either a file path or literal PEM content, so on Fargate they are
+# injected straight from Secrets Manager as env vars and no volume is needed.
 
 variable "billing_metrics_endpoint" {
   description = <<-EOT
@@ -778,34 +784,44 @@ variable "billing_metrics_endpoint" {
   default     = ""
 }
 
-variable "billing_metrics_client_id" {
+variable "billing_metrics_client_cert_pem" {
   description = <<-EOT
-    Cognito OAuth2 client ID exposed to the gateway and backend as
-    LITELLM_BILLING_METRICS_CLIENT_ID. Required when billing_metrics_endpoint
-    is set.
-  EOT
-  type        = string
-  default     = ""
-}
-
-variable "billing_metrics_client_secret" {
-  description = <<-EOT
-    Cognito OAuth2 client secret stored in Secrets Manager and exposed to
-    the gateway and backend as LITELLM_BILLING_METRICS_CLIENT_SECRET.
-    Required when billing_metrics_endpoint is set.
+    PEM content of the mTLS client certificate issued for this deployment.
+    When billing_metrics_endpoint is set, the stack stores this in a
+    `<tenant>-litellm-<env>-billing-metrics-client-cert` Secrets Manager
+    entry, grants the task-execution role GetSecretValue on it, and exposes
+    it to gateway + backend as LITELLM_BILLING_METRICS_CLIENT_CERT. Required
+    whenever metering is enabled.
   EOT
   type        = string
   default     = ""
   sensitive   = true
 }
 
-variable "billing_metrics_token_url" {
+variable "billing_metrics_client_key_pem" {
   description = <<-EOT
-    Cognito OAuth2 client-credentials token endpoint exposed to gateway and
-    backend as LITELLM_BILLING_METRICS_TOKEN_URL.
+    PEM content of the private key matching
+    billing_metrics_client_cert_pem. Stored in a
+    `<tenant>-litellm-<env>-billing-metrics-client-key` Secrets Manager
+    entry and exposed as LITELLM_BILLING_METRICS_CLIENT_KEY. Required
+    whenever metering is enabled.
   EOT
   type        = string
-  default     = "https://litellm-prod.auth.us-west-1.amazoncognito.com/oauth2/token"
+  default     = ""
+  sensitive   = true
+}
+
+variable "billing_metrics_ca_cert_pem" {
+  description = <<-EOT
+    PEM content of the CA bundle used to verify the metering collector.
+    Only needed for private or test collectors whose CA is not in the
+    system trust store; telemetry.litellm.ai is publicly trusted, so leave
+    this empty for production. When set, it is exposed as
+    LITELLM_BILLING_METRICS_CA_CERT.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 # ---------- Collector sidecar ----------
