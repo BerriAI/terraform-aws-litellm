@@ -1,6 +1,6 @@
 # Plan-only coverage for the four networking/database/cache permutations.
 # `mock_provider` keeps this offline: no AWS credentials, no API calls, no
-# resources. Run from litellm/deploy/terraform/litellm/aws with `terraform test`.
+# resources. Run from terraform/litellm/aws with `terraform test`.
 
 mock_provider "aws" {
   # IAM policy documents are validated as JSON by the provider, so the
@@ -14,7 +14,6 @@ mock_provider "aws" {
 mock_provider "random" {}
 
 variables {
-  image_tag           = "v9.9.9"
   region              = "us-east-1"
   tenant              = "acme"
   env                 = "test"

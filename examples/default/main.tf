@@ -1,6 +1,6 @@
 # One-command deploy of the LiteLLM AWS stack.
 #
-#   cd litellm/deploy/terraform/litellm/aws/examples/default
+#   cd terraform/litellm/aws/examples/default
 #   cp terraform.tfvars.example terraform.tfvars   # edit it
 #   terraform init
 #   terraform apply
@@ -10,7 +10,7 @@
 # from your own config with count/for_each/aliased or assume-role providers:
 #
 #   module "litellm" {
-#     source  = "github.com/BerriAI/litellm//litellm/deploy/terraform/litellm/aws?ref=<tag>"
+#     source  = "github.com/BerriAI/litellm//terraform/litellm/aws?ref=<tag>"
 #     ...
 #   }
 #
@@ -37,9 +37,6 @@ module "litellm" {
   litellm_master_key = var.litellm_master_key
   litellm_license    = var.litellm_license
   ui_password        = var.ui_password
-
-  image_registry = var.image_registry
-  image_tag      = var.image_tag != "" ? var.image_tag : null
 
   acm_certificate_arn = var.acm_certificate_arn
   allow_plaintext_alb = var.allow_plaintext_alb
