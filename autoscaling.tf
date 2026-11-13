@@ -1,5 +1,5 @@
 # Application Auto Scaling for the three ECS services. Mirrors the HPA values
-# baked into the helm chart at helm/litellm/values.yaml:
+# baked into the helm chart at litellm/deploy/helm/litellm/values.yaml:
 #
 #   gateway: 1-10 replicas, target 70% CPU + 80% memory
 #   backend: 1-4 replicas,  target 70% CPU

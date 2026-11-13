@@ -1,5 +1,5 @@
-# Gateway path prefixes — mirrored verbatim from gateway/routes/allowlist.py
-# and the helm ingress in helm/litellm/templates/ingress.yaml. Anything not in
+# Gateway path prefixes — mirrored verbatim from litellm/runtime/gateway/routes/allowlist.py
+# and the helm ingress in litellm/deploy/helm/litellm/templates/ingress.yaml. Anything not in
 # this list and not a UI asset path falls through to the backend (management
 # API) catch-all rule on the ALB.
 #
@@ -10,6 +10,8 @@ locals {
   # (or that with a per-resource suffix). Computed once here so the rest of
   # the stack can reference local.name.
   name = "${var.tenant}-litellm-${var.env}"
+
+  image = var.image != "" ? var.image : "${var.image_registry}/litellm:${var.image_tag}"
 
   # This is a reusable module — it declares no `provider` block, so the AWS
   # provider's `default_tags` is the caller's concern, not ours. To keep the
