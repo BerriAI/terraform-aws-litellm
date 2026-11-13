@@ -144,7 +144,7 @@ variable "image_registry" {
 variable "image_tag" {
   description = "Tag of the LiteLLM image when composed from `image_registry`. A published module version ships with this stamped to its own release tag, which matches the `v`-prefixed tag published to GHCR for the same LiteLLM release. Set it to pin a different LiteLLM release. When sourcing the module from a git ref of the monorepo it has no default and must be set. Tags older than the one a module version ships with have no component entrypoint and only run the monolithic proxy."
   type        = string
-  default     = "v1.111.0-dev.1"
+  default     = "v1.111.0-dev.2"
   nullable    = false
 
   validation {

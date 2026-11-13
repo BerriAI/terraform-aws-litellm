@@ -114,7 +114,7 @@ variable "image_registry" {
 variable "image_tag" {
   description = "Tag applied to all four litellm-* images. Bump in lockstep."
   type        = string
-  default     = "v1.111.0-dev.1"
+  default     = "v1.111.0-dev.2"
 }
 
 variable "acm_certificate_arn" {
