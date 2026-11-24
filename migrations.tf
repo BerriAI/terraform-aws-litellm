@@ -28,7 +28,7 @@ resource "aws_ecs_task_definition" "migrations" {
 
   container_definitions = jsonencode([{
     name      = "migrations"
-    image     = local.migrations_image
+    image     = var.migrations_image
     essential = true
 
     # No entryPoint/command override — the image's ENTRYPOINT runs run.py.
